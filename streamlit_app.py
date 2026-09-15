@@ -33,30 +33,34 @@ ingredients_list = st.multiselect(
 
 if ingredients_list:
 
+    # Create ingredients string
     ingredients_string = ""
 
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
 
+    # Call SmoothieFroot API
+    smoothiefroot_response = requests.get(
+        "https://smoothiefroot.com/api/fruit/watermelon"
+    )
+
+    smoothiefroot_response.raise_for_status()
+
+    # Display API response
+    st.write("Fruit API response:")
+    st.json(smoothiefroot_response.json())
+
     # Insert order into Snowflake
     my_insert_stmt = """
         INSERT INTO smoothies.public.orders
         (ingredients, name_on_order)
-        VALUES ('""" + ingredients_string + """', '""" + name_on_order + """')
+        VALUES (?, ?)
     """
 
-    time_to_insert = st.button("Submit Order")
+    session.sql(
+        my_insert_stmt,
+        params=[ingredients_string, name_on_order]
+    ).collect()
 
-    if time_to_insert:
-
-        session.sql(my_insert_stmt).collect()
-
-        # Call SmoothieFroot API
-        smoothiefroot_response = requests.get(
-            "https://smoothiefroot.com/api/fruit/watermelon"
-        )
-
-        st.write("Fruit API response:")
-        st.json(smoothiefroot_response.json())
-
-        st.success("Your Smoothie is ordered!", icon="✅")
+    st.success("Your Smoothie is ordered!", icon="✅")
+    
